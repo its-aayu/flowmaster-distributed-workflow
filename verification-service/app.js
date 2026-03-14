@@ -7,38 +7,52 @@ async function startService() {
   await producer.connect();
   await consumer.connect();
 
-  // Listen to verification requests
+  // listen for workflow start
   await consumer.subscribe({
     topic: "verification_request",
+    fromBeginning: true
+  });
+
+  // listen for compensation
+  await consumer.subscribe({
+    topic: "verification_compensate",
     fromBeginning: true
   });
 
   console.log("Verification service listening...");
 
   await consumer.run({
-    eachMessage: async ({ message }) => {
+    eachMessage: async ({ topic, message }) => {
 
       const data = JSON.parse(message.value.toString());
 
-      console.log("Received verification request:", data);
+      if (topic === "verification_request") {
 
-      // simulate verification
-      const success = Math.random() > 0.2;
+        console.log("Received verification request:", data);
 
-      const result = {
-        workflowId: data.workflowId,
-        status: success ? "success" : "failed"
-      };
+        const success = Math.random() > 0.2;
 
-      // send result back
-      await producer.send({
-        topic: "verification_result",
-        messages: [
-          { value: JSON.stringify(result) }
-        ]
-      });
+        const result = {
+          workflowId: data.workflowId,
+          status: success ? "success" : "failed"
+        };
 
-      console.log("Verification result sent:", result);
+        await producer.send({
+          topic: "verification_result",
+          messages: [{ value: JSON.stringify(result) }]
+        });
+
+        console.log("Verification result sent:", result);
+      }
+
+      if (topic === "verification_compensate") {
+
+        console.log("Compensating verification for workflow:", data.workflowId);
+
+        // rollback simulation
+        console.log("Verification rollback completed");
+
+      }
     }
   });
 }

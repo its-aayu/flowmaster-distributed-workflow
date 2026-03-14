@@ -1,0 +1,9 @@
+workflow:
+  steps:
+    - name: verification
+      request_topic: verification_request
+      response_topic: verification_result
+
+    - name: credit
+      request_topic: credit_request
+      response_topic: credit_result
